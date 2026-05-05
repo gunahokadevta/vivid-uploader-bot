@@ -21,14 +21,25 @@ from pyrogram.types import (
 from pyrogram.errors import FloodWait, MessageDeleteForbidden
 from pyrogram.enums import MessageEntityType, ParseMode
 
-# Suppress warnings
+# Suppress all warnings and outputs
 warnings.filterwarnings("ignore")
 os.environ["PYTHONWARNINGS"] = "ignore"
 os.environ["PYTHONUNBUFFERED"] = "1"
 
+# Suppress all logging
+import logging
+logging.basicConfig(level=logging.ERROR)
+logging.getLogger("pyrogram").setLevel(logging.ERROR)
+logging.getLogger("pyrogram.client").setLevel(logging.ERROR)
+logging.getLogger("pyrogram.session").setLevel(logging.ERROR)
+logging.getLogger("pyrogram.connection").setLevel(logging.ERROR)
+logging.getLogger("asyncio").setLevel(logging.ERROR)
+logging.getLogger("urllib3").setLevel(logging.ERROR)
+logging.getLogger("requests").setLevel(logging.ERROR)
+
 nest_asyncio.apply()
 
-# --- CONFIG (SECURED) ---
+# --- CONFIG ---
 API_ID = int(os.getenv("API_ID", "0"))
 API_HASH = os.getenv("API_HASH", "")
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
@@ -52,8 +63,6 @@ RESOLUTION_MAP = {
     "720": "1280x720",
     "1080": "1920x1080"
 }
-
-# ================= AUTH CHECK REMOVED - EVERYONE CAN USE =================
 
 # ================= SIMPLE URL FIX FUNCTION =================
 
@@ -174,10 +183,10 @@ async def update_status(status_msg, text):
 def get_video_info(file_path):
     try:
         dur_cmd = f'ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{file_path}"'
-        duration = float(subprocess.check_output(dur_cmd, shell=True).decode().strip())
+        duration = float(subprocess.check_output(dur_cmd, shell=True, stderr=subprocess.DEVNULL).decode().strip())
         thumb_path = f"{file_path}.jpg"
         thumb_cmd = f'ffmpeg -y -i "{file_path}" -ss 00:00:05 -vframes 1 "{thumb_path}"'
-        subprocess.run(thumb_cmd, shell=True, capture_output=True)
+        subprocess.run(thumb_cmd, shell=True, capture_output=True, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
         return duration, thumb_path
     except:
         return 0, None
@@ -353,7 +362,6 @@ async def start_cmd(_, message):
         "◈ **Mode:** Turbo Multi-Tasking\n"
         "◈ **Downloader:** Aria2c Turbo\n\n"
         "📥 **Send me a .txt file.**\n"
-        "✅ Spaces wale links auto fix honge (%20)"
     )
     await message.reply_text(desc)
 
@@ -606,13 +614,13 @@ async def split_and_upload_video(file_path, destination, caption_base, thumb, du
         
         part_output = os.path.join(part_dir, f"{part_base_name}_part{part_num}.mp4")
         
-        cmd = f'ffmpeg -i "{file_path}" -ss {start_time_sec} -t {part_dur} -c copy -avoid_negative_ts make_zero "{part_output}"'
+        cmd = f'ffmpeg -i "{file_path}" -ss {start_time_sec} -t {part_dur} -c copy -avoid_negative_ts make_zero "{part_output}" 2>/dev/null'
         
         process = await asyncio.create_subprocess_shell(cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
         await process.communicate()
         
         if not os.path.exists(part_output) or os.path.getsize(part_output) == 0:
-            cmd = f'ffmpeg -i "{file_path}" -ss {start_time_sec} -t {part_dur} -c:v libx264 -c:a aac "{part_output}"'
+            cmd = f'ffmpeg -i "{file_path}" -ss {start_time_sec} -t {part_dur} -c:v libx264 -c:a aac "{part_output}" 2>/dev/null'
             await asyncio.create_subprocess_shell(cmd)
         
         part_caption, _ = build_caption_and_entities(
@@ -749,19 +757,26 @@ async def process_files(chat_id, state):
                 await app.send_document(destination, pdf_filename, caption=caption_html, thumb=custom_thumb, parse_mode=ParseMode.HTML)
 
             else:
-                # Video download with selected resolution
+                # Video download with selected resolution - ALL OUTPUT SUPPRESSED
+                ytdlp_opts = '--no-progress --newline --quiet --no-warnings'
+                
                 if chosen_quality == "480":
-                    cmd = f'yt-dlp -f "best[height<=480]" --external-downloader aria2c --external-downloader-args "aria2c:-x 16 -s 16 -j 32 -k 1M --min-split-size=1M" --merge-output-format mp4 --no-check-certificate "{url}" -o "{video_filename}"'
+                    cmd = f'yt-dlp {ytdlp_opts} -f "best[height<=480]" --external-downloader aria2c --external-downloader-args "aria2c:-x 16 -s 16 -j 32 -k 1M --min-split-size=1M --quiet --console-log-level=error" --merge-output-format mp4 --no-check-certificate "{url}" -o "{video_filename}" 2>/dev/null'
                 elif chosen_quality == "360":
-                    cmd = f'yt-dlp -f "best[height<=360]" --external-downloader aria2c --external-downloader-args "aria2c:-x 16 -s 16 -j 32 -k 1M --min-split-size=1M" --merge-output-format mp4 --no-check-certificate "{url}" -o "{video_filename}"'
+                    cmd = f'yt-dlp {ytdlp_opts} -f "best[height<=360]" --external-downloader aria2c --external-downloader-args "aria2c:-x 16 -s 16 -j 32 -k 1M --min-split-size=1M --quiet --console-log-level=error" --merge-output-format mp4 --no-check-certificate "{url}" -o "{video_filename}" 2>/dev/null'
                 elif chosen_quality == "720":
-                    cmd = f'yt-dlp -f "best[height<=720]" --external-downloader aria2c --external-downloader-args "aria2c:-x 16 -s 16 -j 32 -k 1M --min-split-size=1M" --merge-output-format mp4 --no-check-certificate "{url}" -o "{video_filename}"'
+                    cmd = f'yt-dlp {ytdlp_opts} -f "best[height<=720]" --external-downloader aria2c --external-downloader-args "aria2c:-x 16 -s 16 -j 32 -k 1M --min-split-size=1M --quiet --console-log-level=error" --merge-output-format mp4 --no-check-certificate "{url}" -o "{video_filename}" 2>/dev/null'
                 elif chosen_quality == "1080":
-                    cmd = f'yt-dlp -f "best[height<=1080]" --external-downloader aria2c --external-downloader-args "aria2c:-x 16 -s 16 -j 32 -k 1M --min-split-size=1M" --merge-output-format mp4 --no-check-certificate "{url}" -o "{video_filename}"'
+                    cmd = f'yt-dlp {ytdlp_opts} -f "best[height<=1080]" --external-downloader aria2c --external-downloader-args "aria2c:-x 16 -s 16 -j 32 -k 1M --min-split-size=1M --quiet --console-log-level=error" --merge-output-format mp4 --no-check-certificate "{url}" -o "{video_filename}" 2>/dev/null'
                 else:
-                    cmd = f'yt-dlp -f "best" --external-downloader aria2c --external-downloader-args "aria2c:-x 16 -s 16 -j 32 -k 1M --min-split-size=1M" --merge-output-format mp4 --no-check-certificate "{url}" -o "{video_filename}"'
+                    cmd = f'yt-dlp {ytdlp_opts} -f "best" --external-downloader aria2c --external-downloader-args "aria2c:-x 16 -s 16 -j 32 -k 1M --min-split-size=1M --quiet --console-log-level=error" --merge-output-format mp4 --no-check-certificate "{url}" -o "{video_filename}" 2>/dev/null'
 
-                process = await asyncio.create_subprocess_shell(cmd)
+                # Run with suppressed output
+                process = await asyncio.create_subprocess_shell(
+                    cmd,
+                    stdout=asyncio.subprocess.DEVNULL,
+                    stderr=asyncio.subprocess.DEVNULL
+                )
                 active_processes[chat_id] = process
                 await process.communicate()
                 active_processes.pop(chat_id, None)
@@ -840,19 +855,17 @@ async def process_files(chat_id, state):
         users_data.pop(chat_id, None)
 
 async def main():
-    if os.path.exists("VividUploader.session"):
-        try:
-            os.remove("VividUploader.session")
-        except:
-            pass
-    if os.path.exists("VividUploader.session-journal"):
-        try:
-            os.remove("VividUploader.session-journal")
-        except:
-            pass
+    # Silent session cleanup
+    for session_file in ["VividUploader.session", "VividUploader.session-journal"]:
+        if os.path.exists(session_file):
+            try:
+                os.remove(session_file)
+            except:
+                pass
 
     await app.start()
-    print("Bot Started - Now anyone can use it!")
+    # Only this single line will appear
+    print("Bot Started")
 
     await idle()
 
