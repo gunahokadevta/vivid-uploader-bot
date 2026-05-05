@@ -33,9 +33,6 @@ API_ID = int(os.getenv("API_ID", "0"))
 API_HASH = os.getenv("API_HASH", "")
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 
-OWNER_ID = int(os.getenv("OWNER_ID", "0"))
-SUDO_USERS = [OWNER_ID]  # Sirf owner ko allow
-
 app = Client(
     "VividUploader",
     api_id=API_ID,
@@ -56,13 +53,7 @@ RESOLUTION_MAP = {
     "1080": "1920x1080"
 }
 
-# ================= AUTH CHECK =================
-
-def is_auth(message):
-    user = message.from_user
-    if user:
-        return user.id in SUDO_USERS
-    return False
+# ================= AUTH CHECK REMOVED - EVERYONE CAN USE =================
 
 # ================= SIMPLE URL FIX FUNCTION =================
 
@@ -356,9 +347,6 @@ def build_caption_and_entities(curr_idx, topic, ext_name, resolution, batch_name
 
 @app.on_message(filters.command("start"))
 async def start_cmd(_, message):
-    if not is_auth(message):
-        return await message.reply_text("❌ **Access Denied.**")
-
     desc = (
         "⚡ **𝗩𝗜𝗩𝗜𝗗 𝗧𝗫𝗧 𝗨𝗣𝗟𝗢𝗔𝗗𝗘𝗥 𝘃𝟯.𝟱**\n"
         "━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -371,15 +359,10 @@ async def start_cmd(_, message):
 
 @app.on_message(filters.command("id"))
 async def get_id(_, message):
-    if not is_auth(message):
-        return
     await message.reply_text(f"🆔 **Chat ID:** `{message.chat.id}`")
 
 @app.on_message(filters.command("cancel"))
 async def cancel_cmd(_, message):
-    if not is_auth(message):
-        return
-
     chat_id = message.chat.id
 
     if chat_id in running_tasks:
@@ -424,8 +407,6 @@ async def cancel_cmd(_, message):
 
 @app.on_message(filters.document)
 async def handle_txt(_, message):
-    if not is_auth(message):
-        return
     if not message.document.file_name.endswith(".txt"):
         return
 
@@ -480,9 +461,6 @@ async def handle_txt(_, message):
 
 @app.on_message((filters.text | filters.photo) & ~filters.command(["start", "cancel", "id"]))
 async def steps_handler(_, message):
-    if not is_auth(message):
-        return
-
     chat_id = message.chat.id
     if chat_id not in users_data:
         return
@@ -727,7 +705,6 @@ async def process_files(chat_id, state):
         is_pdf = '.pdf' in url.lower()
         is_image = any(ext in url.lower() for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp'])
 
-        # PDF filename without _vivid
         pdf_filename = os.path.join(work_dir, f"{safe_topic}.pdf")
         img_filename = os.path.join(work_dir, f"{safe_topic}_{extracted_ext_base}.jpg")
         video_filename = os.path.join(work_dir, f"{safe_topic}_{extracted_ext_base}.mp4")
@@ -875,7 +852,7 @@ async def main():
             pass
 
     await app.start()
-    print("Bot Started")
+    print("Bot Started - Now anyone can use it!")
 
     await idle()
 
