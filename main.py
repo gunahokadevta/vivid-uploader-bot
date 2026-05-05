@@ -353,7 +353,6 @@ async def start_cmd(_, message):
         "◈ **Mode:** Turbo Multi-Tasking\n"
         "◈ **Downloader:** Aria2c Turbo\n\n"
         "📥 **Send me a .txt file.**\n"
-        "✅ Spaces wale links auto fix honge (%20)"
     )
     await message.reply_text(desc)
 
