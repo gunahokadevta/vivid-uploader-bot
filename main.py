@@ -1,8 +1,3 @@
-!apt-get update
-!apt-get install ffmpeg aria2 -y
-!pip install -U yt-dlp --upgrade
-!pip install -U pyrogram tgcrypto nest_asyncio
-
 import os
 import html
 import asyncio
